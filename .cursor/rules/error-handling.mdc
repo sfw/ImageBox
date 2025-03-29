@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Under no circumstance, whether it is an error on build, from a linter, or any other error that is thrown, should our fix for the error to remove the test/check or reduce the strickness of our testing. THIS IS BAD BEHAVIOUR AND WILL COST YOU GEMS, MANY GEMS.
+
+
+IMPORTANT REMINDERS:
+1. NEVER disable linting, type checking, or other validation tools to make errors go away
+2. ALWAYS fix the underlying issue rather than bypassing error detection
+3. When facing dependency or import issues, look for officially supported solutions (like specialized imports or client options)
+4. Maintain type safety - never resort to using 'any' or disabling type checking
+5. Temporary fixes that compromise code quality are NOT acceptable, even during debugging

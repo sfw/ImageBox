@@ -1,0 +1,154 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+We are going to test a theory that people are limited in their interactions to LLMs by relying on text clients. This is the first prototype of a context specific client that will focus on image generation. The specification for this project is as follows:
+
+---
+
+## Custom LLM Client for Image Generation with Direct Annotations
+
+### 1. Introduction
+This project involves forking the web version of [Chatbox](https://github.com/chatboxai/chatbox), an open-source interface for Language Learning Models (LLMs), to create a specialized chat-based client tailored for image generation and refinement. The customized client will allow users to generate images from text prompts, annotate them directly with rectangles, freehand drawings, and resizable shapes, and refine them iteratively using an LLM. These enhancements, including rich annotations, version history, and prompt templates, are now integrated as core features of the base project, rather than being deferred as future additions.
+
+---
+
+### 2. Objectives
+- Provide a web-based chat interface for generating images from text prompts.
+- Enable direct image annotations with advanced drawing capabilities (rectangles, freehand, and resizable shapes).
+- Use an LLM to interpret annotations and feedback for iterative image refinement.
+- Include version history and predefined prompt templates as standard features.
+- Ensure configurability for both local and remote LLM and image generation APIs.
+
+---
+
+### 3. Features
+
+#### 3.1 Image Generation
+- **Command**: Users input `/image <prompt>` (e.g., `/image a sunset over the ocean`) to generate an image.
+- **API Support**: Supports local (e.g., Stable Diffusion) or remote (e.g., DALL-E) image generation models.
+
+#### 3.2 Image Display
+- Generated images appear as chat messages with a consistent layout (e.g., max-width of 400px, preserving aspect ratio).
+- Each image includes an "Annotate" button to initiate annotation mode.
+
+#### 3.3 Direct Annotations
+- **Annotation Mode**: Clicking "Annotate" overlays a canvas on the image for drawing.
+- **Drawing Tools**:
+  - Rectangles (auto-numbered: "1", "2", etc.).
+  - **Rich Annotations**: Freehand drawing and resizable shapes powered by Konva.js.
+
+#### 3.4 Feedback and Refinement
+- **Prompt Templates**: Predefined feedback options (e.g., "brighten", "darken") available as buttons or dropdowns for quick selection.
+- **LLM Refinement**: The LLM processes the original prompt, annotations, and feedback to generate a refined prompt.
+  - **Example**: Original prompt: "a sunset over the ocean"; Annotation: "make this brighter" on a region; Refined prompt: "a sunset over the ocean with a brighter sky in the top-left corner."
+
+#### 3.5 Iterative Workflow
+- Each refinement generates a new image in the chat, allowing users to repeat annotations as needed.
+
+#### 3.6 Version History
+- A sidebar displays thumbnails of previous image versions for easy comparison.
+- Users can click a thumbnail to view the full image and its annotations.
+
+#### 3.7 Configuration
+- Users can specify LLM and image generation API endpoints and keys through a settings interface.
+
+---
+
+### 4. User Flow
+1. **Generate Image**  
+   - User: `/image a sunset over the ocean`  
+   - Client: Sends prompt to the image generation API and displays the image with an "Annotate" button.
+
+2. **Enter Annotation Mode**  
+   - User: Clicks "Annotate".  
+   - Client: Overlays a canvas with drawing tools (rectangles, freehand, shapes) and "Done" / "Cancel" buttons.
+
+3. **Draw Annotations**  
+   - User: Draws annotations (e.g., rectangles or freehand shapes).  
+   - Client: Renders annotations in real-time using Konva.js.
+
+4. **Provide Feedback**  
+   - User: Clicks "Done".  
+   - Client: Displays a form listing annotations with text inputs and prompt template options.  
+   - User: Enters feedback (e.g., selects "brighten" or types custom text) and clicks "Submit".
+
+5. **Refine Image**  
+   - Client: Sends original prompt, annotations, and feedback to the LLM.  
+   - LLM: Returns a refined prompt.  
+   - Client: Sends refined prompt to the image generation API and displays the new image.
+
+6. **View Version History**  
+   - User: Opens sidebar to browse and select previous image versions.
+
+---
+
+### 5. Technology Stack
+The technology stack is based on the actual technologies used by Chatbox’s web version, as identified from its GitHub repository (specifically the "web" directory and shared code):
+
+- **Frontend**:
+  - **Framework**: React  
+    - Used for building the user interface, as seen in the `package.json` dependencies (`react`, `react-dom`).
+  - **Build Tool**: Vite  
+    - Employed for bundling and development, confirmed by scripts in `package.json` (e.g., `"dev": "vite"`).
+  - **State Management**: Custom solution using React Context API and hooks  
+    - Observed in the `src/store.ts` file, which defines a store with providers and hooks, rather than Redux.
+  - **Styling**: Tailwind CSS  
+    - Confirmed by the presence of `@tailwindcss/forms` in `package.json` and Tailwind-specific classes (e.g., `flex`, `justify-center`) in the code.
+  - **HTTP Client**: Axios  
+    - Listed in `package.json` (`axios`), used for making API requests.
+  - **Canvas Library**: Konva.js  
+    - Added for this project to enable rich annotations (freehand drawing and resizable shapes).
+
+- **APIs**:
+  - **LLM APIs**: Configurable integration with models like OpenAI or Ollama.  
+    - Chatbox supports various LLMs, and this project will extend that configurability.
+  - **Image Generation APIs**: Configurable integration with services like Stable Diffusion or DALL-E.  
+    - Added for this project’s image generation capabilities.
+
+- **Additional Libraries**:
+  - **React Router DOM**: Included in `package.json` (`react-router-dom`), potentially used for routing if needed in the enhanced client.
+  - Other dependencies may be added as required for specific features (e.g., version history state management).
+
+**Note**: As a client-side web application, Chatbox’s web version does not include a traditional backend server. It makes direct API calls to configured services (e.g., LLMs). This project will maintain that architecture unless server-side processing is later deemed necessary (e.g., for complex image handling), in which case a Node.js backend with Express.js could be introduced.
+
+---
+
+### 6. Technical Implementation
+
+#### 6.1 Frontend (JavaScript/React)
+- **Base**: Fork Chatbox’s web version, leveraging its React foundation.
+- **Command Handler**:
+  - Parse `/image <prompt>` and use Axios to call the image generation API.
+  - Store the resulting image URL in the message state.
+- **Message Rendering**:
+  - Display images with an "Annotate" button.
+  - Integrate Konva.js for rich annotation features within a React component.
+- **AnnotationCanvas Component**:
+  - Use Konva.js to enable drawing rectangles, freehand lines, and resizable shapes.
+  - Capture annotation data (e.g., coordinates, shape types) for LLM processing.
+- **Feedback Form**:
+  - Render a form listing annotations with text inputs and prompt template buttons/dropdowns.
+- **Version History**:
+  - Extend the custom Context API state management to maintain a history stack for each image thread.
+  - Build a sidebar component with clickable image thumbnails.
+
+#### 6.2 API Integration
+- **Image Generation**:
+  - Endpoint: Configurable (e.g., `http://localhost:5000/generate`).
+  - Request: `{ prompt: string }`.
+  - Response: `{ imageUrl: string }`.
+- **LLM**:
+  - Endpoint: Configurable (e.g., `http://localhost:11434/api`).
+  - Request: Structured prompt combining original prompt, annotations, and feedback.
+  - Response: Refined prompt.
+
+#### 6.3 Data Formats
+- **Annotation**: `{ id: number, type: 'rectangle' | 'freehand' | 'shape', coordinates: [points], feedback: string }`.
+- **Message**: `{ type: 'image', imageUrl: string, id: string, history: [imageUrl] }`.
+
+---
+
+### 7. Conclusion
+This updated specification integrates rich annotations, version history, and prompt templates as core features of the base project, eliminating the "future enhancements" distinction as requested. The technology stack reflects the actual tools used by Chatbox’s web version (React, Vite, Tailwind CSS, etc.), augmented with Konva.js for advanced annotations. By forking and enhancing Chatbox, this project delivers a powerful, web-based LLM client for image generation and refinement, offering an intuitive and precise creative workflow.
