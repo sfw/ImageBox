@@ -39,7 +39,7 @@ export default function AnnotationCanvas({
     onDone,
     onCancel
 }: AnnotationCanvasProps) {
-    const [tool, setTool] = useState<'rectangle' | 'freehand'>('freehand');
+    const [tool, setTool] = useState<'rectangle' | 'freehand'>('rectangle');
     const [annotations, setAnnotations] = useState<Annotation[]>(initialAnnotations);
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -519,6 +519,13 @@ export default function AnnotationCanvas({
                                 }
                                 return newBox;
                             }}
+                            enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']}
+                            rotateEnabled={false}
+                            keepRatio={false}
+                            borderStroke="#00F0FF"
+                            anchorStroke="#00F0FF"
+                            anchorFill="#FFFFFF"
+                            anchorSize={8}
                         />
                     </Layer>
                 </Stage>
