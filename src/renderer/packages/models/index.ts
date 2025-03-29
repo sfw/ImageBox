@@ -24,9 +24,6 @@ export function getModel(setting: Settings, config: Config) {
             return new SiliconFlow(setting)
         case ModelProvider.PPIO:
             return new PPIO(setting)
-        case ModelProvider.ImageGeneration:
-            // We'll implement this later
-            return new OpenAI(setting) // Temporarily using OpenAI until we implement ImageGeneration class
         default:
             throw new Error('Cannot find model with provider: ' + setting.aiProvider)
     }
@@ -40,7 +37,6 @@ export const aiProviderNameHash = {
     [ModelProvider.Ollama]: 'Ollama',
     [ModelProvider.SiliconFlow]: 'SiliconCloud API',
     [ModelProvider.PPIO]: 'PPIO',
-    [ModelProvider.ImageGeneration]: 'Image Generation',
 }
 
 export const AIModelProviderMenuOptionList = [
@@ -80,12 +76,6 @@ export const AIModelProviderMenuOptionList = [
         label: aiProviderNameHash[ModelProvider.PPIO],
         disabled: false,
     },
-    {
-        value: ModelProvider.ImageGeneration,
-        label: aiProviderNameHash[ModelProvider.ImageGeneration],
-        featured: true,
-        disabled: false,
-    },
 ]
 
 export function getModelDisplayName(settings: Settings, sessionType: SessionType): string {
@@ -115,8 +105,6 @@ export function getModelDisplayName(settings: Settings, sessionType: SessionType
             return `SiliconCloud (${settings.siliconCloudModel})`
         case ModelProvider.PPIO:
             return `PPIO (${settings.ppioModel})`
-        case ModelProvider.ImageGeneration:
-            return `Image Generation (${settings.imageGenerationModel || ImageGenerationModel.DALLE3})`
         default:
             return 'unknown'
     }

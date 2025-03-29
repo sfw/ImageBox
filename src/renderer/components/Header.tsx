@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
-import { Typography, useTheme } from '@mui/material'
+import { Typography, useTheme, IconButton, Tooltip } from '@mui/material'
 import * as atoms from '../stores/atoms'
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom, useAtom } from 'jotai'
 import * as sessionActions from '../stores/sessionActions'
 import Toolbar from './Toolbar'
 import { cn } from '@/lib/utils'
 import { getAutoGenerateTitle } from '@/stores/settingActions'
+import { ImageIcon } from 'lucide-react'
 
 interface Props { }
 
@@ -13,6 +14,7 @@ export default function Header(props: Props) {
     const theme = useTheme()
     const currentSession = useAtomValue(atoms.currentSessionAtom)
     const setChatConfigDialogSession = useSetAtom(atoms.chatConfigDialogAtom)
+    const [showImageToolbar, setShowImageToolbar] = useAtom(atoms.showImageGenerationToolbarAtom)
 
     useEffect(() => {
         const autoGenerateTitle : boolean = getAutoGenerateTitle()
@@ -28,6 +30,10 @@ export default function Header(props: Props) {
 
     const editCurrentSession = () => {
         setChatConfigDialogSession(currentSession)
+    }
+
+    const toggleImageToolbar = () => {
+        setShowImageToolbar(!showImageToolbar)
     }
 
     return (
@@ -61,6 +67,17 @@ export default function Header(props: Props) {
                         </Typography>
                     }
                 </Typography>
+                
+                <Tooltip title={showImageToolbar ? "Hide image options" : "Show image options"}>
+                    <IconButton 
+                        color={showImageToolbar ? "primary" : "default"}
+                        onClick={toggleImageToolbar}
+                        sx={{ mr: 1 }}
+                    >
+                        <ImageIcon size="20" />
+                    </IconButton>
+                </Tooltip>
+                
                 <Toolbar />
             </div>
         </div>

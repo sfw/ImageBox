@@ -1,4 +1,4 @@
-import { Divider, Box } from '@mui/material'
+import { Divider, Box, Typography } from '@mui/material'
 import { ModelProvider, ModelSettings } from '../../../shared/types'
 import OpenAISetting from './OpenAISetting'
 import ChatboxAISetting from './ChatboxAISetting'
@@ -10,7 +10,7 @@ import MaxContextMessageCountSlider from '@/components/MaxContextMessageCountSli
 import TemperatureSlider from '@/components/TemperatureSlider'
 import ClaudeSetting from './ClaudeSetting'
 import PPIOSetting from './PPIOSetting'
-import ImageGenerationSetting from './ImageGenerationSetting'
+import { useTranslation } from 'react-i18next'
 
 interface ModelConfigProps {
     settingsEdit: ModelSettings
@@ -19,6 +19,8 @@ interface ModelConfigProps {
 
 export default function ModelSettingTab(props: ModelConfigProps) {
     const { settingsEdit, setSettingsEdit } = props
+    const { t } = useTranslation()
+    
     return (
         <Box>
             <AIProviderSelect
@@ -84,9 +86,6 @@ export default function ModelSettingTab(props: ModelConfigProps) {
             )}
             {settingsEdit.aiProvider === ModelProvider.PPIO && (
                 <PPIOSetting settingsEdit={settingsEdit} setSettingsEdit={setSettingsEdit} />
-            )}
-            {settingsEdit.aiProvider === ModelProvider.ImageGeneration && (
-                <ImageGenerationSetting settingsEdit={settingsEdit} setSettingsEdit={setSettingsEdit} />
             )}
         </Box>
     )

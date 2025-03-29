@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Typography, useTheme } from '@mui/material'
 import { SessionType, createMessage, ModelProvider } from '../../shared/types'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +28,16 @@ export default function InputBox(props: Props) {
     const [messageInput, setMessageInput] = useState('')
     const inputRef = useRef<HTMLTextAreaElement | null>(null)
     const settings = useAtomValue(atoms.settingsAtom)
+    const setShowImageGenerationToolbar = useSetAtom(atoms.showImageGenerationToolbarAtom)
+
+    // Check and update toolbar visibility when message input changes
+    useEffect(() => {
+        if (messageInput.startsWith('/image ')) {
+            setShowImageGenerationToolbar(true)
+        } else if (messageInput === '') {
+            setShowImageGenerationToolbar(false)
+        }
+    }, [messageInput, setShowImageGenerationToolbar])
 
     const handleSubmit = (needGenerating = true) => {
         if (messageInput.trim() === '') {
@@ -44,7 +54,6 @@ export default function InputBox(props: Props) {
             imageMessage.imageUrl = 'placeholder'; // Will be replaced by actual URL
             imageMessage.originalPrompt = prompt;
             imageMessage.generating = true;
-            imageMessage.aiProvider = ModelProvider.ImageGeneration;
             imageMessage.model = settings.imageGenerationModel;
             
             // Add the user message and image message to the session
@@ -57,6 +66,7 @@ export default function InputBox(props: Props) {
             });
             
             setMessageInput('');
+            setShowImageGenerationToolbar(false);
             trackingEvent('generate_image', { event_category: 'user' });
             return;
         }
@@ -68,6 +78,7 @@ export default function InputBox(props: Props) {
             needGenerating,
         })
         setMessageInput('')
+        setShowImageGenerationToolbar(false)
         trackingEvent('send_message', { event_category: 'user' })
     }
 
@@ -104,6 +115,7 @@ export default function InputBox(props: Props) {
         // Insert /image command at the start of the input
         if (!messageInput.startsWith('/image ')) {
             setMessageInput('/image ' + messageInput);
+            setShowImageGenerationToolbar(true);
             if (inputRef.current) {
                 inputRef.current.focus();
             }

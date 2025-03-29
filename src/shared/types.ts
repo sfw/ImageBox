@@ -80,7 +80,6 @@ export enum ModelProvider {
     SiliconFlow = 'silicon-flow',
     LMStudio = 'lm-studio',
     PPIO = 'ppio',
-    ImageGeneration = 'image-generation',
 }
 
 // Image generation types
