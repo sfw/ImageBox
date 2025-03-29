@@ -89,6 +89,7 @@ export enum ImageGenerationModel {
     DALLE3 = 'dall-e-3',
     DALLE2 = 'dall-e-2',
     StableDiffusion = 'stable-diffusion',
+    GPT4o = 'gpt-4o',
 }
 
 export enum StableDiffusionProvider {
@@ -167,6 +168,7 @@ export interface ModelSettings {
     imageStoragePath?: string;
     imageStyle?: 'vivid' | 'natural';
     imageQuality?: 'standard' | 'hd';
+    uploadPreviousImage?: boolean; // For GPT-4o: whether to upload the previous image
     stableDiffusionHost?: string; // Host for Stable Diffusion API
     stableDiffusionProvider?: StableDiffusionProvider; // Provider for Stable Diffusion API
     stableDiffusionAPIKey?: string; // API key for hosted Stable Diffusion services

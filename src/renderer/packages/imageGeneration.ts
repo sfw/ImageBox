@@ -25,6 +25,7 @@ interface ImageGenerationOptions {
   quality?: 'standard' | 'hd';  // New DALL-E 3 parameter
   imageDescription?: string;
   imageUrl?: string;
+  uploadPreviousImage?: boolean; // For GPT-4o: whether to upload the previous image
 }
 
 interface ImageGenerationResult {
@@ -103,6 +104,232 @@ async function generateWithDalle(options: ImageGenerationOptions): Promise<Image
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+}
+
+/**
+ * Generate an image using GPT-4o capabilities
+ * Note: GPT-4o doesn't directly generate images, so we'll use the DALL-E 3 endpoint
+ */
+async function generateWithGPT4o(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
+  try {
+    if (!options.apiKey) {
+      return {
+        success: false,
+        imageUrl: '',
+        error: 'API key is required for GPT-4o image generation'
+      };
+    }
+
+    console.log('Generating image with GPT-4o:', options.prompt);
+    
+    // Extract the base API host from the apiEndpoint if available
+    let baseApiUrl = 'https://api.openai.com';
+    if (options.apiEndpoint) {
+      // If apiEndpoint is provided, extract just the host part
+      try {
+        const url = new URL(options.apiEndpoint);
+        baseApiUrl = `${url.protocol}//${url.host}`;
+      } catch (e) {
+        console.warn('Failed to parse apiEndpoint, using default OpenAI API URL', e);
+      }
+    }
+    
+    // First, use GPT-4o to enhance the prompt if requested
+    let enhancedPrompt = options.prompt;
+    
+    if (options.uploadPreviousImage && options.imageUrl) {
+      try {
+        enhancedPrompt = await enhancePromptWithGPT4o(options);
+        console.log('Enhanced prompt with GPT-4o:', enhancedPrompt.substring(0, 100) + '...');
+      } catch (error) {
+        console.error('Error enhancing prompt with GPT-4o:', error);
+        // Continue with original prompt if enhancement fails
+      }
+    }
+    
+    // Now, generate the image using DALL-E 3 endpoint
+    const endpoint = `${baseApiUrl}/v1/images/generations`;
+    console.log('Using images generation endpoint:', endpoint);
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${options.apiKey}`
+    };
+
+    // Create the request body for DALL-E 3 image generation
+    const requestBody = {
+      model: 'dall-e-3',
+      prompt: enhancedPrompt,
+      n: 1,
+      size: options.size,
+      quality: options.quality || 'standard',
+      style: options.style || 'vivid'
+    };
+
+    console.log('Sending DALL-E request with prompt enhanced by GPT-4o');
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`DALL-E API Error: ${JSON.stringify(errorData)}`);
+    }
+
+    const data = await response.json();
+    
+    // Extract the image URL from the response
+    const imageUrl = data.data?.[0]?.url;
+    
+    if (!imageUrl) {
+      throw new Error('No image URL found in DALL-E response');
+    }
+    
+    console.log('Got image URL from DALL-E:', imageUrl);
+    
+    // Save the image locally
+    const localImageUrl = await imageStorage.saveImageFromUrl(imageUrl, options.sessionId);
+    
+    return {
+      success: true,
+      imageUrl: localImageUrl,
+      localImagePath: localImageUrl
+    };
+  } catch (error) {
+    console.error('GPT-4o image generation failed:', error);
+    return {
+      success: false,
+      imageUrl: '',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Use GPT-4o to enhance a prompt based on a previous image
+ */
+async function enhancePromptWithGPT4o(options: ImageGenerationOptions): Promise<string> {
+  // Extract the base API host from the apiEndpoint if available
+  let baseApiUrl = 'https://api.openai.com';
+  if (options.apiEndpoint) {
+    try {
+      const url = new URL(options.apiEndpoint);
+      baseApiUrl = `${url.protocol}//${url.host}`;
+    } catch (e) {
+      console.warn('Failed to parse apiEndpoint, using default OpenAI API URL', e);
+    }
+  }
+  
+  const endpoint = `${baseApiUrl}/v1/chat/completions`;
+  console.log('Using chat completions endpoint for prompt enhancement:', endpoint);
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${options.apiKey}`
+  };
+
+  // Prepare messages
+  const messages = [];
+  
+  // Add system message
+  messages.push({
+    role: 'system',
+    content: `You are an expert prompt enhancer for image generation. Your task is to analyze an image and the user's prompt, then create a detailed, vivid prompt that captures both the essence of the original image and incorporates the user's requested changes. Focus on artistic style, composition, lighting, and important details.`
+  });
+
+  // Create the content array for the user message
+  const userContent = [];
+  
+  // Add text content
+  userContent.push({
+    type: 'text',
+    text: `I want to generate a new image based on this reference image. 
+    
+Original prompt: "${options.prompt}"
+
+Please create an enhanced, detailed prompt that incorporates all the important visual elements from the reference image while applying the changes I'm requesting in my prompt. Make the description vivid and detailed - around 100-200 words.`
+  });
+
+  // Include the image if we have a valid URL
+  if (options.imageUrl) {
+    try {
+      let imageData;
+      if (options.imageUrl.startsWith('file://')) {
+        // This is a local file path
+        try {
+          // For Electron renderer process, we can use fetch for local files
+          const response = await fetch(options.imageUrl);
+          const blob = await response.blob();
+          imageData = await blobToBase64(blob);
+        } catch (err) {
+          console.error('Error reading local file with fetch:', err);
+          // Fall back to using the URL directly if it's accessible
+          imageData = options.imageUrl;
+        }
+      } else if (options.imageUrl.startsWith('data:')) {
+        // Already a data URL
+        imageData = options.imageUrl;
+      } else {
+        // External URL, fetch it
+        const response = await fetch(options.imageUrl);
+        const blob = await response.blob();
+        imageData = await blobToBase64(blob);
+      }
+
+      // Add the image to the content
+      userContent.push({
+        type: 'image_url',
+        image_url: {
+          url: imageData
+        }
+      });
+      
+      console.log('Previous image included in GPT-4o prompt enhancement request');
+    } catch (error) {
+      console.error('Error including previous image:', error);
+      // Continue without the image
+    }
+  } else {
+    console.log('No previous image URL provided for GPT-4o prompt enhancement');
+  }
+
+  // Add the user message
+  messages.push({
+    role: 'user',
+    content: userContent
+  });
+
+  // Make the API request
+  const requestBody = {
+    model: 'gpt-4o',
+    messages: messages,
+    temperature: 0.7,
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`GPT-4o API Error: ${JSON.stringify(errorData)}`);
+  }
+
+  const data = await response.json();
+  
+  // Extract the enhanced prompt from the response
+  const enhancedPrompt = data.choices[0]?.message?.content;
+  
+  if (!enhancedPrompt) {
+    throw new Error('No enhanced prompt returned from GPT-4o');
+  }
+  
+  return enhancedPrompt;
 }
 
 /**
@@ -490,6 +717,8 @@ export async function generateImage(options: ImageGenerationOptions): Promise<Im
   let result;
   if (options.model === ImageGenerationModel.DALLE3 || options.model === ImageGenerationModel.DALLE2) {
     result = await generateWithDalle(options);
+  } else if (options.model === ImageGenerationModel.GPT4o) {
+    result = await generateWithGPT4o(options);
   } else if (options.model === ImageGenerationModel.StableDiffusion) {
     result = await generateWithStableDiffusion(options);
   } else {
@@ -610,7 +839,12 @@ export async function refineImage(
   options.prompt = combinedPrompt;
   
   // Generate the new image
-  const result = await generateImage(options);
+  const result = await generateImage({
+    ...options,
+    prompt: combinedPrompt,
+    // For GPT-4o refinements, we want to upload the previous image
+    uploadPreviousImage: options.model === ImageGenerationModel.GPT4o ? true : options.uploadPreviousImage
+  });
   
   // Store the full combined prompt
   if (result.success) {

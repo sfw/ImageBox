@@ -32,7 +32,7 @@ export function settings(): Settings {
         lmStudioModel: '',
 
         // Image generation settings
-        imageGenerationModel: ImageGenerationModel.DALLE3,
+        imageGenerationModel: ImageGenerationModel.GPT4o,
         imageSize: '1024x1024' as ImageSize,
         imageStyle: 'vivid' as const,
         imageQuality: 'standard' as const,

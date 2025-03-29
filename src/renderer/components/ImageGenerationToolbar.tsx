@@ -15,7 +15,9 @@ import {
   DialogContent,
   DialogActions,
   InputLabel,
-  FormHelperText
+  FormControlLabel,
+  Checkbox,
+  Typography
 } from '@mui/material';
 import { useAtom } from 'jotai';
 import * as atoms from '../stores/atoms';
@@ -58,6 +60,13 @@ export default function ImageGenerationToolbar() {
     });
   };
 
+  const handleUploadPreviousImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSettings({
+      ...settings,
+      uploadPreviousImage: event.target.checked
+    });
+  };
+
   const handleSDProviderChange = (event: SelectChangeEvent<string>) => {
     setSettings({
       ...settings,
@@ -86,6 +95,7 @@ export default function ImageGenerationToolbar() {
 
   // Only show style and quality settings for DALL-E 3
   const isDallE3Selected = settings.imageGenerationModel === ImageGenerationModel.DALLE3;
+  const isGPT4oSelected = settings.imageGenerationModel === ImageGenerationModel.GPT4o;
   const isStableDiffusionSelected = settings.imageGenerationModel === ImageGenerationModel.StableDiffusion;
   const sdProvider = settings.stableDiffusionProvider || StableDiffusionProvider.Local;
   const isLocalSD = sdProvider === StableDiffusionProvider.Local;
@@ -111,10 +121,11 @@ export default function ImageGenerationToolbar() {
           <Select
             labelId="model-label"
             label={t('Model')}
-            value={settings.imageGenerationModel || ImageGenerationModel.DALLE3}
+            value={settings.imageGenerationModel || ImageGenerationModel.GPT4o}
             onChange={handleModelChange}
             variant="outlined"
           >
+            <MenuItem value={ImageGenerationModel.GPT4o}>GPT-4o</MenuItem>
             <MenuItem value={ImageGenerationModel.DALLE3}>DALL-E 3</MenuItem>
             <MenuItem value={ImageGenerationModel.DALLE2}>DALL-E 2</MenuItem>
             <MenuItem value={ImageGenerationModel.StableDiffusion}>Stable Diffusion</MenuItem>
@@ -166,6 +177,29 @@ export default function ImageGenerationToolbar() {
                 <MenuItem value="hd">HD</MenuItem>
               </Select>
             </FormControl>
+          </>
+        )}
+
+        {isGPT4oSelected && (
+          <>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={settings.uploadPreviousImage || false}
+                  onChange={handleUploadPreviousImageChange}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  {t('Upload previous image')}
+                </Typography>
+              }
+              sx={{ ml: 1 }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+              {t('Allows for refinement with visible annotations')}
+            </Typography>
           </>
         )}
 
