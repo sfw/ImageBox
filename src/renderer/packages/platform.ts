@@ -88,6 +88,14 @@ export class DesktopPlatform {
     public async appLog(level: string, message: string) {
         return this.ipc.invoke('appLog', JSON.stringify({ level, message }))
     }
+    
+    public async getAppDataDir(): Promise<string> {
+        return this.ipc.invoke('getAppDataDir')
+    }
+    
+    public async restartMainProcess(): Promise<void> {
+        return this.ipc.invoke('restartMainProcess')
+    }
 }
 
 export default new DesktopPlatform(window.electronAPI as any)

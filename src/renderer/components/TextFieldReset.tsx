@@ -8,19 +8,23 @@ export default function TextFieldReset(props: {
     onValueChange: (value: string) => void
 } & Omit<React.ComponentProps<typeof TextField>, 'defaultValue' | 'value' | 'onChange'>) {
     const { t } = useTranslation()
-    const defaultValue = props.defaultValue || ''
-    const handleReset = () => props.onValueChange(defaultValue)
+    const { defaultValue, value, onValueChange, ...restProps } = props
+    const defaultVal = defaultValue || ''
+    const handleReset = () => onValueChange(defaultVal)
     const handleMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
     }
+    
     return (
         <TextField
-            {...props}
-            onChange={(e) => props.onValueChange(e.target.value)}
+            {...restProps}
+            value={value}
+            onChange={(e) => onValueChange(e.target.value)}
             InputProps={
-                defaultValue === props.value
-                    ? {}
+                defaultVal === value
+                    ? restProps.InputProps
                     : {
+                        ...restProps.InputProps,
                         endAdornment: (
                             <Button variant='text' onClick={handleReset} onMouseDown={handleMouseDown}>
                                 {t('reset')}
@@ -28,7 +32,6 @@ export default function TextFieldReset(props: {
                         ),
                     }
             }
-            helperText={props.helperText}
         />
     )
 }

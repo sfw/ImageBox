@@ -24,6 +24,16 @@ export interface Message {
     aiProvider?: ModelProvider
     model?: string
 
+    // Image-related properties
+    imageUrl?: string;
+    originalPrompt?: string;
+    refinementPrompt?: string;
+    imageDescription?: string;
+    fullPrompt?: string; // Complete prompt sent to the image generation model
+    annotations?: Annotation[];
+    history?: string[]; // Array of previous image URLs in this thread
+    isReroll?: boolean; // Indicates if this is a rerolled image
+
     errorCode?: number
     error?: string
     errorExtra?: {
@@ -70,6 +80,37 @@ export enum ModelProvider {
     SiliconFlow = 'silicon-flow',
     LMStudio = 'lm-studio',
     PPIO = 'ppio',
+    ImageGeneration = 'image-generation',
+}
+
+// Image generation types
+export type ImageSize = '1024x1024' | '1024x1792' | '1792x1024' | '512x512';
+
+export enum ImageGenerationModel {
+    DALLE3 = 'dall-e-3',
+    DALLE2 = 'dall-e-2',
+    StableDiffusion = 'stable-diffusion',
+}
+
+export enum StableDiffusionProvider {
+    Local = 'local',           // For local installations (A1111, ComfyUI, etc.)
+    StableDiffusionAPI = 'stablediffusionapi', // https://stablediffusionapi.com/
+    Replicate = 'replicate',    // Replicate.com API service
+    Custom = 'custom',         // For any other custom endpoint
+}
+
+export interface Annotation {
+    id: string;
+    type: 'rectangle' | 'freehand' | 'shape';
+    coordinates: number[];
+    feedback: string;
+    normalizedCoordinates?: {
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+    };
+    spatialReference?: string;
 }
 
 export interface ModelSettings {
@@ -120,6 +161,16 @@ export interface ModelSettings {
     ppioHost: string
     ppioKey: string
     ppioModel: string
+
+    // image generation
+    imageGenerationModel: ImageGenerationModel;
+    imageSize: ImageSize;
+    imageStoragePath?: string;
+    imageStyle?: 'vivid' | 'natural';
+    imageQuality?: 'standard' | 'hd';
+    stableDiffusionHost?: string; // Host for Stable Diffusion API
+    stableDiffusionProvider?: StableDiffusionProvider; // Provider for Stable Diffusion API
+    stableDiffusionAPIKey?: string; // API key for hosted Stable Diffusion services
 
     temperature: number
     topP: number

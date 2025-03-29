@@ -10,7 +10,7 @@ import PersonIcon from '@mui/icons-material/Person'
 import SmartToyIcon from '@mui/icons-material/SmartToy'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { useTranslation } from 'react-i18next'
-import { Message, SessionType } from '../../shared/types'
+import { Message as MessageType, SessionType, Annotation } from '../../shared/types'
 import { useAtomValue, useSetAtom } from 'jotai'
 import {
     showMessageTimestampAtom,
@@ -25,20 +25,23 @@ import * as scrollActions from '../stores/scrollActions'
 import Markdown from '@/components/Markdown'
 import '../static/Block.css'
 import MessageErrTips from './MessageErrTips'
-import * as dateFns from "date-fns"
+import { format, isToday, isThisYear } from "date-fns"
 import { cn } from '@/lib/utils'
 import { estimateTokensFromMessages } from '@/packages/token'
 import { countWord } from '@/packages/word-count'
+import ImageMessage from './ImageBox/ImageMessage'
 
 export interface Props {
     id?: string
     sessionId: string
     sessionType: SessionType
-    msg: Message
+    msg: MessageType
     className?: string
     collapseThreshold?: number
     hiddenButtonGroup?: boolean
     small?: boolean
+    onRefineImage?: (message: MessageType, annotations: Annotation[], globalFeedback: string, refinementPrompt: string) => void;
+    onRerollImage?: (message: MessageType) => void;
 }
 
 export default function Message(props: Props) {
@@ -54,7 +57,7 @@ export default function Message(props: Props) {
     const currentSessionPicUrl = useAtomValue(currsentSessionPicUrlAtom)
     const setOpenSettingWindow = useSetAtom(openSettingDialogAtom)
 
-    const { msg, className, collapseThreshold, hiddenButtonGroup, small } = props
+    const { msg, className, collapseThreshold, hiddenButtonGroup, small, onRefineImage, onRerollImage } = props
 
     const needCollapse = collapseThreshold
         && (JSON.stringify(msg.content)).length > collapseThreshold
@@ -85,12 +88,12 @@ export default function Message(props: Props) {
     if (showMessageTimestamp && msg.timestamp !== undefined) {
         let date = new Date(msg.timestamp)
         let messageTimestamp: string
-        if (dateFns.isToday(date)) {
-            messageTimestamp = dateFns.format(date, 'HH:mm')
-        } else if (dateFns.isThisYear(date)) {
-            messageTimestamp = dateFns.format(date, 'MM-dd HH:mm')
+        if (isToday(date)) {
+            messageTimestamp = format(date, 'HH:mm')
+        } else if (isThisYear(date)) {
+            messageTimestamp = format(date, 'MM-dd HH:mm')
         } else {
-            messageTimestamp = dateFns.format(date, 'yyyy-MM-dd HH:mm')
+            messageTimestamp = format(date, 'yyyy-MM-dd HH:mm')
         }
 
         tips.push('time: ' + messageTimestamp)
@@ -121,6 +124,102 @@ export default function Message(props: Props) {
             [{isCollapsed ? t('Expand') : t('Collapse')}]
         </span>
     )
+
+    // Check if this is an image message
+    const isImageMessage = !!msg.imageUrl;
+
+    // Render Image Message if present 
+    if (isImageMessage) {
+        return (
+            <Box
+                ref={ref}
+                id={props.id}
+                key={msg.id}
+                className={cn(
+                    'group/message',
+                    'msg-block',
+                    'px-2',
+                    msg.generating ? 'rendering' : 'render-done',
+                    {
+                        user: 'user-msg',
+                        system: 'system-msg',
+                        assistant: 'assistant-msg',
+                    }[msg?.role || 'user'],
+                    className,
+                )}
+                sx={{
+                    margin: '0',
+                    paddingBottom: '0.1rem',
+                    paddingX: '1rem',
+                    [theme.breakpoints.down('sm')]: {
+                        paddingX: '0.3rem',
+                    },
+                }}
+            >
+                <Grid container wrap="nowrap" spacing={1.5}>
+                    <Grid item>
+                        <Box sx={{ marginTop: '8px' }}>
+                            {
+                                {
+                                    assistant: currentSessionPicUrl ? (
+                                        <Avatar
+                                            src={currentSessionPicUrl}
+                                            sx={{
+                                                width: '28px',
+                                                height: '28px',
+                                            }}
+                                        />
+                                    ) : (
+                                        <Avatar
+                                            sx={{
+                                                backgroundColor: theme.palette.primary.main,
+                                                width: '28px',
+                                                height: '28px',
+                                            }}
+                                        >
+                                            <SmartToyIcon fontSize='small' />
+                                        </Avatar>
+                                    ),
+                                    user: (
+                                        <Avatar
+                                            sx={{
+                                                width: '28px',
+                                                height: '28px',
+                                            }}
+                                            className='cursor-pointer'
+                                            onClick={() => setOpenSettingWindow('chat')}
+                                        >
+                                            <PersonIcon fontSize='small' />
+                                        </Avatar>
+                                    ),
+                                    system:
+                                        <Avatar
+                                            sx={{
+                                                backgroundColor: theme.palette.warning.main,
+                                                width: '28px',
+                                                height: '28px',
+                                            }}
+                                        >
+                                            <SettingsIcon fontSize='small' />
+                                        </Avatar>,
+                                }[msg.role || 'user']
+                            }
+                        </Box>
+                    </Grid>
+                    <Grid item flexGrow={1} sx={{ marginBottom: '0.75rem' }}>
+                        {/* Image Message Component */}
+                        <ImageMessage 
+                            message={msg} 
+                            onRefineImage={onRefineImage || (() => {})}
+                            onRerollImage={onRerollImage}
+                        />
+                        {/* Display error if present */}
+                        {msg.error && <MessageErrTips msg={msg} />}
+                    </Grid>
+                </Grid>
+            </Box>
+        );
+    }
 
     return (
         <Box
@@ -203,22 +302,20 @@ export default function Message(props: Props) {
                         <Box className={cn('msg-content', { 'msg-content-small': small })} sx={
                             small ? { fontSize: theme.typography.body2.fontSize } : {}
                         }>
-                            {
-                                enableMarkdownRendering && !isCollapsed ? (
-                                    <Markdown>
-                                        {content}
-                                    </Markdown>
-                                ) : (
-                                    <div>
-                                        {content}
-                                        {
-                                            needCollapse && isCollapsed && (
-                                                CollapseButton
-                                            )
-                                        }
-                                    </div>
-                                )
-                            }
+                            {enableMarkdownRendering && !isCollapsed ? (
+                                <Markdown>
+                                    {content}
+                                </Markdown>
+                            ) : (
+                                <div>
+                                    {content}
+                                    {
+                                        needCollapse && isCollapsed && (
+                                            CollapseButton
+                                        )
+                                    }
+                                </div>
+                            )}
                         </Box>
                         <MessageErrTips msg={msg} />
                         {

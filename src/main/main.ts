@@ -263,3 +263,175 @@ ipcMain.handle('appLog', (event, dataJson) => {
             log.info(data.message)
     }
 })
+
+// Image-related IPC handlers
+ipcMain.handle('ensureDirectory', async (event, dirPath) => {
+    try {
+        console.log(`Creating directory: ${dirPath}`);
+        await fs.promises.mkdir(dirPath, { recursive: true });
+        
+        // Verify the directory was created successfully
+        const stats = await fs.promises.stat(dirPath);
+        if (!stats.isDirectory()) {
+            console.error(`Failed to create directory, path exists but is not a directory: ${dirPath}`);
+            return false;
+        }
+        
+        console.log(`Directory created successfully: ${dirPath}`);
+        return true;
+    } catch (error) {
+        console.error('Failed to create directory:', dirPath, error);
+        return false;
+    }
+});
+
+ipcMain.handle('saveBase64Image', async (event, filePath, base64Data) => {
+    try {
+        console.log(`Saving base64 image to: ${filePath}`);
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Ensure the directory exists
+        const dirPath = path.dirname(filePath);
+        await fs.promises.mkdir(dirPath, { recursive: true });
+        
+        // Write the file
+        await fs.promises.writeFile(filePath, buffer);
+        
+        // Verify the file was written successfully
+        const stats = await fs.promises.stat(filePath);
+        if (!stats.isFile()) {
+            console.error(`Failed to save image, path exists but is not a file: ${filePath}`);
+            return false;
+        }
+        
+        console.log(`Base64 image saved successfully: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.error('Failed to save base64 image:', filePath, error);
+        return false;
+    }
+});
+
+ipcMain.handle('downloadImage', async (event, url, filePath) => {
+    try {
+        console.log(`Downloading image from ${url} to ${filePath}`);
+        
+        // For security, only allow downloading from certain domains
+        const allowedDomains = [
+            'openai.com', 'api.openai.com', 
+            'replicate.com', 'api.replicate.com',
+            'stability.ai', 'api.stability.ai',
+            'loremflickr.com', 'picsum.photos',
+            'placehold.co', 'placehold.it',
+            'blob.core.windows.net' // Added for OpenAI DALL-E images from Azure Blob Storage
+        ];
+        
+        const urlObj = new URL(url);
+        const isAllowed = allowedDomains.some(domain => urlObj.hostname.includes(domain));
+        
+        if (!isAllowed) {
+            console.error(`Downloads not allowed from ${urlObj.hostname}`);
+            throw new Error(`Downloads not allowed from ${urlObj.hostname}`);
+        }
+        
+        // Use the built-in https module instead of node-fetch
+        let responseData: Buffer;
+        if (url.startsWith('https://')) {
+            // Use https
+            const https = require('https');
+            responseData = await new Promise((resolve, reject) => {
+                https.get(url, (res: any) => {
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`HTTP error: ${res.statusCode}`));
+                        return;
+                    }
+                    
+                    const chunks: Buffer[] = [];
+                    res.on('data', (chunk: Buffer) => chunks.push(chunk));
+                    res.on('end', () => resolve(Buffer.concat(chunks)));
+                    res.on('error', reject);
+                }).on('error', reject);
+            });
+        } else {
+            // Use http
+            const http = require('http');
+            responseData = await new Promise((resolve, reject) => {
+                http.get(url, (res: any) => {
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`HTTP error: ${res.statusCode}`));
+                        return;
+                    }
+                    
+                    const chunks: Buffer[] = [];
+                    res.on('data', (chunk: Buffer) => chunks.push(chunk));
+                    res.on('end', () => resolve(Buffer.concat(chunks)));
+                    res.on('error', reject);
+                }).on('error', reject);
+            });
+        }
+        
+        // Create directory if it doesn't exist
+        const dirPath = path.dirname(filePath);
+        await fs.promises.mkdir(dirPath, { recursive: true });
+        
+        // Write to file
+        await fs.promises.writeFile(filePath, responseData);
+        
+        // Verify the file was written successfully
+        const stats = await fs.promises.stat(filePath);
+        if (!stats.isFile()) {
+            console.error(`Failed to save downloaded image, path exists but is not a file: ${filePath}`);
+            return false;
+        }
+        
+        console.log(`Image downloaded successfully: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.error('Failed to download image:', filePath, error);
+        return false;
+    }
+});
+
+ipcMain.handle('deleteFile', async (event, filePath) => {
+    try {
+        await fs.promises.unlink(filePath);
+        return true;
+    } catch (error) {
+        console.error('Failed to delete file:', error);
+        return false;
+    }
+});
+
+ipcMain.handle('listFiles', async (event, dirPath, pattern) => {
+    try {
+        // Ensure directory exists
+        if (!fs.existsSync(dirPath)) {
+            return [];
+        }
+        
+        // Read directory
+        const files = await fs.promises.readdir(dirPath);
+        
+        // Filter by pattern if provided
+        let filteredFiles = files;
+        if (pattern) {
+            const regex = new RegExp(pattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
+            filteredFiles = files.filter(file => regex.test(file));
+        }
+        
+        // Return full paths
+        return filteredFiles.map(file => path.join(dirPath, file));
+    } catch (error) {
+        console.error('Failed to list files:', error);
+        return [];
+    }
+});
+
+ipcMain.handle('getAppDataDir', () => {
+    return app.getPath('userData');
+});
+
+ipcMain.handle('restartMainProcess', () => {
+    app.relaunch();
+    app.quit();
+});

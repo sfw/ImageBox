@@ -10,6 +10,7 @@ import MaxContextMessageCountSlider from '@/components/MaxContextMessageCountSli
 import TemperatureSlider from '@/components/TemperatureSlider'
 import ClaudeSetting from './ClaudeSetting'
 import PPIOSetting from './PPIOSetting'
+import ImageGenerationSetting from './ImageGenerationSetting'
 
 interface ModelConfigProps {
     settingsEdit: ModelSettings
@@ -75,8 +76,7 @@ export default function ModelSettingTab(props: ModelConfigProps) {
                 </>
             )}
 
-
-             {settingsEdit.aiProvider === ModelProvider.SiliconFlow && (
+            {settingsEdit.aiProvider === ModelProvider.SiliconFlow && (
                 <SiliconFlowSetting settingsEdit={settingsEdit} setSettingsEdit={setSettingsEdit} />
             )}
             {settingsEdit.aiProvider === ModelProvider.Claude && (
@@ -84,6 +84,9 @@ export default function ModelSettingTab(props: ModelConfigProps) {
             )}
             {settingsEdit.aiProvider === ModelProvider.PPIO && (
                 <PPIOSetting settingsEdit={settingsEdit} setSettingsEdit={setSettingsEdit} />
+            )}
+            {settingsEdit.aiProvider === ModelProvider.ImageGeneration && (
+                <ImageGenerationSetting settingsEdit={settingsEdit} setSettingsEdit={setSettingsEdit} />
             )}
         </Box>
     )

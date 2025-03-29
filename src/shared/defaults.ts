@@ -1,4 +1,4 @@
-import { Theme, Config, Settings, ModelProvider, Session } from './types'
+import { Theme, Config, Settings, ModelProvider, Session, ImageGenerationModel, ImageSize, StableDiffusionProvider } from './types'
 import { v4 as uuidv4 } from 'uuid'
 
 export function settings(): Settings {
@@ -30,6 +30,15 @@ export function settings(): Settings {
 
         lmStudioHost: 'http://127.0.0.1:1234',
         lmStudioModel: '',
+
+        // Image generation settings
+        imageGenerationModel: ImageGenerationModel.DALLE3,
+        imageSize: '1024x1024' as ImageSize,
+        imageStyle: 'vivid' as const,
+        imageQuality: 'standard' as const,
+        stableDiffusionHost: 'http://localhost:7860',
+        stableDiffusionProvider: StableDiffusionProvider.Local,
+        stableDiffusionAPIKey: '',
 
         showWordCount: true,
         showTokenCount: false,

@@ -5,12 +5,21 @@ alwaysApply: true
 ---
 We are going to test a theory that people are limited in their interactions to LLMs by relying on text clients. This is the first prototype of a context specific client that will focus on image generation. The specification for this project is as follows:
 
+
+I have tried this once before and here are some lessons I've learned that we should use in our initial design specification:
+- We will want to store the generated images locally in a file system sorted by chat sessionid for future recall as saving simply the openai url expires.
+- We will want to allow for rerolling of the image generation and refinements.
+- Because we can not send images back to the model (DALL-E 3) for refinement, we need to create a function that explains the image in every detail, including positional information. It might be best to take the image dimensions and figure out a pretty tight grid system to help communicate exact positions of previous images as well as the refinements required. 
+- The annotations will need to explain the position of the drawn annotation to the model in the refinement and that annotation feedback that is entered by the user. 
+- Global feedback should also be allowed between iterations. 
+- The user will need a selection box to choose image size but a default of 1024x1024 is best. 
+- The API + Model settings in the settings area should now include a model selector for image generation/refinement.
 ---
 
 ## Custom LLM Client for Image Generation with Direct Annotations
 
 ### 1. Introduction
-This project involves forking the web version of [Chatbox](https://github.com/chatboxai/chatbox), an open-source interface for Language Learning Models (LLMs), to create a specialized chat-based client tailored for image generation and refinement. The customized client will allow users to generate images from text prompts, annotate them directly with rectangles, freehand drawings, and resizable shapes, and refine them iteratively using an LLM. These enhancements, including rich annotations, version history, and prompt templates, are now integrated as core features of the base project, rather than being deferred as future additions.
+This project involves forking the web version of [Chatbox](mdc:https:/github.com/chatboxai/chatbox), an open-source interface for Language Learning Models (LLMs), to create a specialized chat-based client tailored for image generation and refinement. The customized client will allow users to generate images from text prompts, annotate them directly with rectangles, freehand drawings, and resizable shapes, and refine them iteratively using an LLM. These enhancements, including rich annotations, version history, and prompt templates, are now integrated as core features of the base project, rather than being deferred as future additions.
 
 ---
 

@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react'
 import { Typography, useTheme } from '@mui/material'
-import { SessionType, createMessage } from '../../shared/types'
+import { SessionType, createMessage, ModelProvider } from '../../shared/types'
 import { useTranslation } from 'react-i18next'
 import * as atoms from '../stores/atoms'
-import { useSetAtom } from 'jotai'
+import { useSetAtom, useAtomValue } from 'jotai'
 import * as sessionActions from '../stores/sessionActions'
 import {
     SendHorizontal,
     Settings2,
+    ImageIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import icon from '../static/icon.png'
@@ -26,11 +27,40 @@ export default function InputBox(props: Props) {
     const { t } = useTranslation()
     const [messageInput, setMessageInput] = useState('')
     const inputRef = useRef<HTMLTextAreaElement | null>(null)
+    const settings = useAtomValue(atoms.settingsAtom)
 
     const handleSubmit = (needGenerating = true) => {
         if (messageInput.trim() === '') {
             return
         }
+
+        // Check if this is an image generation command
+        if (messageInput.startsWith('/image ') && messageInput.length > 7) {
+            const prompt = messageInput.substring(7);
+            const newMessage = createMessage('user', messageInput);
+            
+            // Create a response message for the image
+            const imageMessage = createMessage('assistant', '');
+            imageMessage.imageUrl = 'placeholder'; // Will be replaced by actual URL
+            imageMessage.originalPrompt = prompt;
+            imageMessage.generating = true;
+            imageMessage.aiProvider = ModelProvider.ImageGeneration;
+            imageMessage.model = settings.imageGenerationModel;
+            
+            // Add the user message and image message to the session
+            sessionActions.submitImageGenerationMessage({
+                currentSessionId: props.currentSessionId,
+                userMessage: newMessage,
+                imageMessage: imageMessage,
+                prompt: prompt,
+                imageSize: settings.imageSize,
+            });
+            
+            setMessageInput('');
+            trackingEvent('generate_image', { event_category: 'user' });
+            return;
+        }
+
         const newMessage = createMessage('user', messageInput)
         sessionActions.submitNewUserMessage({
             currentSessionId: props.currentSessionId,
@@ -69,6 +99,16 @@ export default function InputBox(props: Props) {
     }
 
     const [easterEgg, setEasterEgg] = useState(false)
+    
+    const handleImageButton = () => {
+        // Insert /image command at the start of the input
+        if (!messageInput.startsWith('/image ')) {
+            setMessageInput('/image ' + messageInput);
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        }
+    };
 
     return (
         <div className='pl-2 pr-4'
@@ -99,6 +139,17 @@ export default function InputBox(props: Props) {
                             tooltipPlacement='top'
                         >
                             <Settings2 size='22' strokeWidth={1} />
+                        </MiniButton>
+                        <MiniButton className='mr-2' style={{ color: theme.palette.text.primary }}
+                            onClick={handleImageButton}
+                            tooltipTitle={
+                                <div className='text-center inline-block'>
+                                    <span>{t('Generate Image')}</span>
+                                </div>
+                            }
+                            tooltipPlacement='top'
+                        >
+                            <ImageIcon size='22' strokeWidth={1} />
                         </MiniButton>
                     </div>
                     <div className='flex flex-row items-center'>

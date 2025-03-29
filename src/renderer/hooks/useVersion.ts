@@ -14,8 +14,8 @@ export default function useVersion() {
             _setVersion(version)
             try {
                 const os = await platform.getPlatform()
-                const needUpdate = await remote.checkNeedUpdate(version, os, config, settings)
-                setNeedCheckUpdate(needUpdate)
+                //const needUpdate = await remote.checkNeedUpdate(version, os, config, settings)
+                //setNeedCheckUpdate(needUpdate)
             } catch (e) {
                 console.log(e)
                 // setNeedCheckUpdate(true)

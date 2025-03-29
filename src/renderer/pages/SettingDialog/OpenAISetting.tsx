@@ -17,6 +17,15 @@ interface ModelConfigProps {
 export default function OpenAISetting(props: ModelConfigProps) {
     const { settingsEdit, setSettingsEdit } = props
     const { t } = useTranslation()
+    
+    const handleApiHostChange = (value: string) => {
+        value = value.trim()
+        if (value.length > 4 && !value.startsWith('http')) {
+            value = 'https://' + value
+        }
+        setSettingsEdit({ ...settingsEdit, apiHost: value })
+    }
+    
     return (
         <Box>
             <PasswordTextField
@@ -37,13 +46,7 @@ export default function OpenAISetting(props: ModelConfigProps) {
                     value={settingsEdit.apiHost}
                     placeholder="https://api.openai.com"
                     defaultValue='https://api.openai.com'
-                    onValueChange={(value) => {
-                        value = value.trim()
-                        if (value.length > 4 && !value.startsWith('http')) {
-                            value = 'https://' + value
-                        }
-                        setSettingsEdit({ ...settingsEdit, apiHost: value })
-                    }}
+                    onValueChange={handleApiHostChange}
                 />
             </>
             <Accordion>
